@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tile Availability — Showroom Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,600;0,700;1,400;1,600&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #F2EDE6;
+  --white:   #FDFAF7;
+  --ink:     #1C1510;
+  --muted:   #7A6E66;
+  --border:  #DDD5CB;
+  --clay:    #B86B35;
+  --clay-lt: #F5E8D8;
+  --clay-dk: #8A4E20;
+  --stone:   #3D3028;
+  --green:   #2E6E47;
+  --green-lt:#E6F2EB;
+  --amber:   #B86B35;
+  --amber-lt:#FBF0E6;
+  --wa:      #25D366;
+  --r8:8px;--r12:12px;--r16:16px;--r24:24px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg);color:var(--ink);font-family:'Karla',sans-serif;overflow-x:hidden}
+
+/* SUSPENDED OVERLAY */
+.suspended-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:1000;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px}
+.suspended-screen.show{display:flex}
+.susp-icon{font-size:48px;margin-bottom:16px}
+.susp-title{font-family:'Fraunces',serif;font-size:28px;font-weight:600;color:var(--ink);margin-bottom:10px}
+.susp-text{font-size:15px;color:var(--muted);max-width:360px;line-height:1.7;margin-bottom:24px}
+.susp-wa{background:var(--wa);color:white;border:none;border-radius:var(--r8);padding:13px 24px;font-family:'Karla',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+
+/* NAV */
+nav{background:var(--stone);padding:0 20px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.nav-brand{display:flex;align-items:center;gap:10px;cursor:pointer}
+.nav-tiles{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:2px;width:22px;height:22px}
+.nav-tiles span{background:rgba(255,255,255,.4);border-radius:2px;display:block}
+.nav-tiles span:first-child{background:var(--clay)}
+.biz-name{font-family:'Fraunces',serif;color:white;font-size:17px;font-weight:600;letter-spacing:-.2px}
+.nav-tabs{display:flex;gap:2px}
+.ntab{background:none;border:none;color:rgba(255,255,255,.55);font-family:'Karla',sans-serif;font-size:13px;font-weight:600;padding:8px 14px;border-radius:var(--r8);cursor:pointer;transition:all .2s}
+.ntab:hover,.ntab.active{color:white;background:rgba(255,255,255,.1)}
+
+/* SCREENS */
+.screen{display:none;animation:fadeIn .22s ease}
+.screen.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* HOME */
+#screen-home{background:var(--bg)}
+.hero{background:var(--stone);padding:52px 24px 44px;text-align:center;position:relative;overflow:hidden}
+.hero-pattern{position:absolute;inset:0;opacity:.04;background-image:repeating-linear-gradient(0deg,white 0,white 1px,transparent 1px,transparent 40px),repeating-linear-gradient(90deg,white 0,white 1px,transparent 1px,transparent 40px)}
+.hero-eyebrow{display:inline-block;border:1px solid rgba(184,107,53,.5);color:var(--clay);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:4px 14px;border-radius:99px;margin-bottom:14px;background:rgba(184,107,53,.08)}
+.hero h1{font-family:'Fraunces',serif;color:white;font-size:clamp(26px,5vw,40px);line-height:1.15;margin-bottom:10px;font-weight:600}
+.hero h1 em{color:var(--clay);font-style:italic}
+.hero p{color:rgba(255,255,255,.5);font-size:14px;max-width:380px;margin:0 auto 36px;line-height:1.7}
+
+.search-box{background:var(--white);border-radius:var(--r16);padding:26px 22px;max-width:420px;margin:0 auto;box-shadow:0 8px 40px rgba(0,0,0,.2);position:relative;z-index:1}
+.sbox-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
+.sbox-input{width:100%;border:1.5px solid var(--border);border-radius:var(--r8);padding:11px 14px;font-family:'Karla',sans-serif;font-size:15px;color:var(--ink);background:var(--bg);outline:none;transition:border-color .2s}
+.sbox-input:focus{border-color:var(--clay);background:white}
+.sbox-input::placeholder{color:#BDB0A5}
+.sbox-row{display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-top:12px}
+.check-btn{margin-top:16px;width:100%;background:var(--clay);color:white;border:none;border-radius:var(--r8);padding:13px;font-family:'Karla',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:background .2s}
+.check-btn:hover{background:var(--clay-dk)}
+.check-btn:active{transform:scale(.98)}
+.err-msg{font-size:12px;color:#C44;margin-top:5px;display:none}
+.or-row{display:flex;align-items:center;gap:12px;margin:20px 0;color:#C0B5AC;font-size:12px}
+.or-row::before,.or-row::after{content:'';flex:1;height:1px;background:var(--border)}
+.browse-btn{width:100%;background:none;border:1.5px solid var(--border);border-radius:var(--r8);padding:12px;font-family:'Karla',sans-serif;font-size:13px;font-weight:700;color:var(--stone);cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.browse-btn:hover{border-color:var(--clay);color:var(--clay);background:var(--clay-lt)}
+
+/* GALLERY */
+#screen-gallery{padding:20px 16px 40px;max-width:560px;margin:0 auto}
+.back-btn{background:none;border:none;font-family:'Karla',sans-serif;font-size:14px;font-weight:600;color:var(--clay);cursor:pointer;padding:0;margin-bottom:14px;display:flex;align-items:center;gap:5px}
+.screen-title{font-family:'Fraunces',serif;font-size:22px;font-weight:600;color:var(--ink);margin-bottom:4px}
+.screen-sub{font-size:13px;color:var(--muted);margin-bottom:16px}
+.filter-wrap{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+.fchip{border:1.5px solid var(--border);background:white;border-radius:99px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);transition:all .2s;font-family:'Karla',sans-serif}
+.fchip.active,.fchip:hover{background:var(--clay);border-color:var(--clay);color:white}
+.gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px}
+.tile-card{background:white;border-radius:var(--r12);overflow:hidden;cursor:pointer;transition:transform .2s,box-shadow .2s;border:1px solid var(--border)}
+.tile-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
+.tile-card:active{transform:scale(.97)}
+.tile-img{width:100%;aspect-ratio:1;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:36px;overflow:hidden}
+.tile-img img{width:100%;height:100%;object-fit:cover}
+.tile-info{padding:10px 12px 12px}
+.tile-code{font-size:10px;font-weight:700;color:var(--clay);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px}
+.tile-name{font-size:13px;font-weight:700;color:var(--ink);line-height:1.3}
+.tile-size{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* DETAIL */
+#screen-detail{padding:20px 16px 40px;max-width:480px;margin:0 auto}
+.prod-img-wrap{width:100%;aspect-ratio:1;border-radius:var(--r16);overflow:hidden;background:var(--bg);margin-bottom:18px;box-shadow:0 4px 20px rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center;font-size:72px;border:1px solid var(--border)}
+.prod-img-wrap img{width:100%;height:100%;object-fit:cover}
+.prod-meta{background:white;border-radius:var(--r12);border:1px solid var(--border);margin-bottom:18px;overflow:hidden}
+.meta-row{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--border)}
+.meta-row:last-child{border-bottom:none}
+.meta-k{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.meta-v{font-size:14px;font-weight:700;color:var(--ink)}
+.qty-wrap{background:white;border-radius:var(--r12);border:1px solid var(--border);padding:18px}
+.qty-wrap h3{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:12px;text-transform:uppercase;letter-spacing:.4px}
+.qty-row{display:flex;gap:10px;align-items:center}
+.qty-unit{font-size:13px;color:var(--muted);white-space:nowrap;font-weight:500}
+
+/* RESULT */
+#screen-result{padding:20px 16px 40px;max-width:440px;margin:0 auto}
+.result-card{background:white;border-radius:var(--r16);border:1px solid var(--border);padding:30px 24px;text-align:center}
+.res-icon{width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:28px}
+.res-icon.ok{background:var(--green-lt)}
+.res-icon.ask{background:var(--amber-lt)}
+.res-title{font-family:'Fraunces',serif;font-size:24px;font-weight:600;margin-bottom:8px}
+.res-title.ok{color:var(--green)}
+.res-title.ask{color:var(--clay)}
+.res-desc{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:20px}
+.res-summary{background:var(--bg);border-radius:var(--r8);padding:14px 16px;text-align:left;margin-bottom:20px;border:1px solid var(--border)}
+.rs-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0}
+.rs-k{color:var(--muted)}
+.rs-v{font-weight:700;color:var(--ink)}
+.wa-btn{width:100%;background:var(--wa);color:white;border:none;border-radius:var(--r8);padding:14px;font-family:'Karla',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;transition:background .2s}
+.wa-btn:hover{background:#1EBC5A}
+.sec-btn{width:100%;background:none;border:1.5px solid var(--border);border-radius:var(--r8);padding:12px;font-family:'Karla',sans-serif;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;transition:all .2s;margin-bottom:8px}
+.sec-btn:hover{border-color:var(--clay);color:var(--clay)}
+.updated-note{font-size:11px;color:#BDB0A5;margin-top:12px}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--stone);color:white;padding:11px 18px;border-radius:var(--r8);font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:99;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(max-width:360px){.gallery-grid{grid-template-columns:1fr 1fr}.sbox-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- SUSPENDED SCREEN -->
+<div class="suspended-screen" id="suspended-screen">
+  <div class="susp-icon">🔒</div>
+  <div class="susp-title">Portal Temporarily Unavailable</div>
+  <div class="susp-text">This showroom portal is currently inactive. Please contact the business directly to place enquiries or check availability.</div>
+  <button class="susp-wa" id="susp-wa-btn">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    Contact via WhatsApp
+  </button>
+</div>
+
+<nav>
+  <div class="nav-brand" onclick="showScreen('home')">
+    <div class="nav-tiles"><span></span><span></span><span></span><span></span></div>
+    <span class="biz-name" id="nav-biz-name">TilePortal</span>
+  </div>
+  <div class="nav-tabs">
+    <button class="ntab active" id="ntab-home" onclick="showScreen('home')">Search</button>
+    <button class="ntab" id="ntab-gallery" onclick="showScreen('gallery')">Gallery</button>
+  </div>
+</nav>
+
+<!-- HOME -->
+<div class="screen active" id="screen-home">
+  <div class="hero">
+    <div class="hero-pattern"></div>
+    <div class="hero-eyebrow" id="hero-eyebrow">Showroom Portal</div>
+    <h1>Check stock<br><em>before you ask.</em></h1>
+    <p>Enter a product code and quantity to instantly check availability.</p>
+    <div class="search-box">
+      <div class="sbox-label">Product Code</div>
+      <input class="sbox-input" id="h-code" placeholder="e.g. FT1025" oninput="this.value=this.value.toUpperCase()">
+      <div class="sbox-row">
+        <div>
+          <div class="sbox-label">Required Quantity</div>
+          <input class="sbox-input" id="h-qty" type="number" placeholder="500" min="1">
+        </div>
+        <div>
+          <div class="sbox-label">Unit</div>
+          <input class="sbox-input" value="Pieces" disabled style="opacity:.5">
+        </div>
+      </div>
+      <div class="err-msg" id="h-err">Product not found. Check the code and try again.</div>
+      <button class="check-btn" onclick="homeSearch()">Check Availability</button>
+      <div class="or-row">or</div>
+      <button class="browse-btn" onclick="showScreen('gallery')">
+        ⊞ Browse Product Gallery
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- GALLERY -->
+<div class="screen" id="screen-gallery">
+  <button class="back-btn" onclick="showScreen('home')">← Back</button>
+  <div class="screen-title" id="gallery-biz-name">Product Gallery</div>
+  <div class="screen-sub">Tap a product to check availability</div>
+  <div class="filter-wrap" id="filter-wrap">
+    <div class="fchip active" data-cat="All" onclick="filterGallery(this)">All</div>
+  </div>
+  <div class="gallery-grid" id="gallery-grid"><div style="color:var(--muted);font-size:14px;padding:20px 0">Loading…</div></div>
+</div>
+
+<!-- DETAIL -->
+<div class="screen" id="screen-detail">
+  <button class="back-btn" id="detail-back-btn">← Back</button>
+  <div class="prod-img-wrap" id="det-img"></div>
+  <div class="prod-meta" id="det-meta"></div>
+  <div class="qty-wrap">
+    <h3>Required Quantity</h3>
+    <div class="qty-row">
+      <input class="sbox-input" id="det-qty" type="number" placeholder="Enter pieces" min="1" style="flex:1">
+      <span class="qty-unit">pieces</span>
+    </div>
+    <div class="err-msg" id="det-err">Please enter a valid quantity.</div>
+    <button class="check-btn" onclick="detailCheck()" style="margin-top:14px">Check Availability</button>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="screen-result">
+  <button class="back-btn" onclick="showScreen('detail')">← Back</button>
+  <div class="result-card" id="result-card"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════
+const params   = new URLSearchParams(window.location.search);
+const TENANT   = params.get('tenant') || 'D001';
+
+// Supabase — replace in production
+const SUPABASE_URL = 'https://zpxxgfskdlspoiqdbvma.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_xKOg2BceGja-s14Q33CwYw_AGBUPfZI';
+const DEMO = false;
+
+// ═══════════════════════════════════════
+// DEMO DATA
+// ═══════════════════════════════════════
+const TENANTS = {
+  'D001':{ biz:'Raj Tiles & Marbles',  wa:'919876543210', status:'active'    },
+  'D002':{ biz:'Shree Flooring World', wa:'919823456789', status:'active'    },
+  'D003':{ biz:'Metro Tile House',     wa:'919812345678', status:'active'    },
+  'D004':{ biz:'Classic Stone Gallery',wa:'919845678901', status:'suspended' },
+  'D005':{ biz:'Modern Floor Studio',  wa:'919856789012', status:'active'    },
+};
+
+const DEMO_PRODUCTS = [
+  { code:'FT1025', name:'Marble White', size:'600×600 mm', cat:'Polished', img:'' },
+  { code:'FT1026', name:'Slate Grey',   size:'600×600 mm', cat:'Matt',     img:'' },
+  { code:'FT1027', name:'Ivory Cream',  size:'800×800 mm', cat:'Polished', img:'' },
+  { code:'FT1029', name:'Coal Black',   size:'600×1200 mm',cat:'Matt',     img:'' },
+  { code:'FT1030', name:'Rose Beige',   size:'600×600 mm', cat:'Polished', img:'' },
+  { code:'FT1031', name:'Forest Green', size:'300×600 mm', cat:'Outdoor',  img:'' },
+  { code:'FT1032', name:'Arctic Blue',  size:'600×600 mm', cat:'Polished', img:'' },
+];
+
+const DEMO_STOCK = {
+  'FT1025':1500, 'FT1026':200, 'FT1027':800,
+  'FT1029':1200, 'FT1030':50,  'FT1031':950, 'FT1032':700,
+};
+
+const EMOJIS = { 'Polished':'🟫','Matt':'⬜','Outdoor':'🟩','default':'🔲' };
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let tenant       = TENANTS[TENANT] || TENANTS['D001'];
+let currentProd  = null;
+let fromGallery  = false;
+let allProducts  = [];
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+function init() {
+  // Check suspended
+  if(tenant.status === 'suspended') {
+    document.getElementById('suspended-screen').classList.add('show');
+    document.getElementById('susp-wa-btn').onclick = () => {
+      window.open(`https://wa.me/${tenant.wa}?text=Hello,%20I%20would%20like%20to%20enquire%20about%20tile%20availability.`, '_blank');
+    };
+    return;
+  }
+
+  document.getElementById('nav-biz-name').textContent  = tenant.biz;
+  document.getElementById('hero-eyebrow').textContent  = tenant.biz;
+  document.getElementById('gallery-biz-name').textContent = tenant.biz + ' — Gallery';
+  document.title = `${tenant.biz} — Availability`;
+
+  allProducts = [...DEMO_PRODUCTS];
+}
+
+// ═══════════════════════════════════════
+// SCREENS
+// ═══════════════════════════════════════
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`screen-${name}`).classList.add('active');
+  const nb = document.getElementById(`ntab-${name}`);
+  if(nb) nb.classList.add('active');
+  if(name==='gallery') renderGallery();
+  window.scrollTo({top:0,behavior:'instant'});
+}
+
+// ═══════════════════════════════════════
+// HOME SEARCH
+// ═══════════════════════════════════════
+async function homeSearch() {
+  const code = document.getElementById('h-code').value.trim().toUpperCase();
+  const qty  = parseInt(document.getElementById('h-qty').value);
+  const err  = document.getElementById('h-err');
+  err.style.display = 'none';
+
+  if(!code) { toast('Enter a Product Code'); return; }
+  if(!qty || qty < 1) { toast('Enter a valid quantity'); return; }
+
+  const prod = DEMO_PRODUCTS.find(p=>p.code===code);
+  if(!prod) { err.style.display='block'; return; }
+
+  fromGallery  = false;
+  currentProd  = prod;
+  renderDetail(prod);
+  document.getElementById('det-qty').value = qty;
+  showScreen('detail');
+  setTimeout(detailCheck, 80);
+}
+
+// ═══════════════════════════════════════
+// GALLERY
+// ═══════════════════════════════════════
+function renderGallery(list) {
+  list = list || allProducts;
+  const cats = ['All', ...new Set(allProducts.map(p=>p.cat).filter(Boolean))];
+  const fw = document.getElementById('filter-wrap');
+  fw.innerHTML = cats.map((c,i)=>
+    `<div class="fchip ${i===0?'active':''}" data-cat="${c}" onclick="filterGallery(this)">${c}</div>`
+  ).join('');
+
+  document.getElementById('gallery-grid').innerHTML = list.map(p => {
+    const em = EMOJIS[p.cat]||EMOJIS.default;
+    return `
+      <div class="tile-card" onclick="openFromGallery('${p.code}')">
+        <div class="tile-img">${p.img?`<img src="${p.img}" alt="${p.name}" onerror="this.parentNode.innerHTML='${em}'">`:`${em}`}</div>
+        <div class="tile-info">
+          <div class="tile-code">${p.code}</div>
+          <div class="tile-name">${p.name}</div>
+          <div class="tile-size">${p.size||''}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function filterGallery(el) {
+  document.querySelectorAll('.fchip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  const cat = el.dataset.cat;
+  renderGallery(cat==='All' ? allProducts : allProducts.filter(p=>p.cat===cat));
+}
+
+function openFromGallery(code) {
+  const prod = allProducts.find(p=>p.code===code);
+  if(!prod) return;
+  fromGallery = true;
+  currentProd = prod;
+  document.getElementById('det-qty').value = '';
+  document.getElementById('det-err').style.display = 'none';
+  document.getElementById('detail-back-btn').onclick = () => showScreen('gallery');
+  renderDetail(prod);
+  showScreen('detail');
+}
+
+// ═══════════════════════════════════════
+// DETAIL
+// ═══════════════════════════════════════
+function renderDetail(p) {
+  const em = EMOJIS[p.cat]||EMOJIS.default;
+  const wrap = document.getElementById('det-img');
+  wrap.innerHTML = p.img
+    ? `<img src="${p.img}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.innerHTML='<span style=font-size:72px>${em}</span>'">`
+    : `<span style="font-size:72px">${em}</span>`;
+
+  if(!fromGallery) document.getElementById('detail-back-btn').onclick = ()=>showScreen('home');
+
+  document.getElementById('det-meta').innerHTML = `
+    <div class="meta-row"><span class="meta-k">Product Code</span><span class="meta-v">${p.code}</span></div>
+    <div class="meta-row"><span class="meta-k">Product Name</span><span class="meta-v">${p.name}</span></div>
+    ${p.size?`<div class="meta-row"><span class="meta-k">Size</span><span class="meta-v">${p.size}</span></div>`:''}
+    ${p.cat?`<div class="meta-row"><span class="meta-k">Category</span><span class="meta-v">${p.cat}</span></div>`:''}
+  `;
+}
+
+// ═══════════════════════════════════════
+// AVAILABILITY CHECK
+// ═══════════════════════════════════════
+function detailCheck() {
+  const qty = parseInt(document.getElementById('det-qty').value);
+  const err = document.getElementById('det-err');
+  err.style.display = 'none';
+  if(!qty||qty<1) { err.style.display='block'; return; }
+  if(!currentProd) return;
+
+  // Security: only return status, never stock number
+  const stock  = DEMO_STOCK[currentProd.code] || 0;
+  const status = stock >= qty ? 'available' : 'check_sales';
+
+  renderResult({ status, lastUpdated:'Today' }, qty);
+  showScreen('result');
+}
+
+// ═══════════════════════════════════════
+// RESULT
+// ═══════════════════════════════════════
+function renderResult(res, qty) {
+  const p  = currentProd;
+  const ok = res.status === 'available';
+
+  const orderMsg = encodeURIComponent(
+    `Hello,\n\nI would like to place an order:\n\nProduct Code: ${p.code}\nProduct Name: ${p.name}\nRequired Qty: ${qty} pcs\n\nPlease confirm and process.\n\nThank you.`
+  );
+  const enqMsg = encodeURIComponent(
+    `Hello,\n\nAvailability Enquiry\n\nProduct Code: ${p.code}\nProduct Name: ${p.name}\nRequired Qty: ${qty} pcs\n\nPlease confirm availability and suggest alternatives if needed.\n\nThank you.`
+  );
+  const waLink = `https://wa.me/${tenant.wa}?text=${ok?orderMsg:enqMsg}`;
+  const waIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
+
+  document.getElementById('result-card').innerHTML = ok ? `
+    <div class="res-icon ok">✅</div>
+    <div class="res-title ok">Available</div>
+    <p class="res-desc">Please place your order with our sales team.</p>
+    <div class="res-summary">
+      <div class="rs-row"><span class="rs-k">Product Code</span><span class="rs-v">${p.code}</span></div>
+      <div class="rs-row"><span class="rs-k">Product Name</span><span class="rs-v">${p.name}</span></div>
+      <div class="rs-row"><span class="rs-k">Quantity Requested</span><span class="rs-v">${qty} pcs</span></div>
+    </div>
+    <a href="${waLink}" target="_blank" style="text-decoration:none;display:block">
+      <button class="wa-btn">${waIcon} Contact Sales on WhatsApp</button>
+    </a>
+    <button class="sec-btn" onclick="showScreen('home')">Check Another Product</button>
+    ${res.lastUpdated?`<div class="updated-note">Stock status as of ${res.lastUpdated}</div>`:''}
+  ` : `
+    <div class="res-icon ask">📞</div>
+    <div class="res-title ask">Please Check With Sales</div>
+    <p class="res-desc">Please check with our sales team for availability and alternatives.</p>
+    <div class="res-summary">
+      <div class="rs-row"><span class="rs-k">Product Code</span><span class="rs-v">${p.code}</span></div>
+      <div class="rs-row"><span class="rs-k">Product Name</span><span class="rs-v">${p.name}</span></div>
+      <div class="rs-row"><span class="rs-k">Quantity Requested</span><span class="rs-v">${qty} pcs</span></div>
+    </div>
+    <a href="${waLink}" target="_blank" style="text-decoration:none;display:block">
+      <button class="wa-btn">${waIcon} Send Enquiry on WhatsApp</button>
+    </a>
+    <button class="sec-btn" onclick="showScreen('gallery')">Browse Alternatives</button>
+    <button class="sec-btn" onclick="showScreen('home')">Check Another Product</button>
+    ${res.lastUpdated?`<div class="updated-note">Stock status as of ${res.lastUpdated}</div>`:''}
+  `;
+}
+
+// ═══════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show';
+  setTimeout(()=>{t.className='toast';}, 3000);
+}
+
+init();
+</script>
+</body>
+</html>

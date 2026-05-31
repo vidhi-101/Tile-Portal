@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TilePortal — Owner Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:     #0D0D0D;
+  --ink2:    #1A1A1A;
+  --ink3:    #2A2A2A;
+  --muted:   #6B6B6B;
+  --border:  #2A2A2A;
+  --border2: #333;
+  --surface: #141414;
+  --surface2:#1C1C1C;
+  --surface3:#222;
+  --accent:  #E8C547;
+  --accent2: #F0D060;
+  --green:   #4ADE80;
+  --red:     #F87171;
+  --blue:    #60A5FA;
+  --orange:  #FB923C;
+  --white:   #FAFAFA;
+  --r6:6px;--r8:8px;--r12:12px;--r16:16px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--ink);color:var(--white);font-family:'Instrument Sans',sans-serif;overflow-x:hidden}
+
+/* LAYOUT */
+.shell{display:grid;grid-template-columns:220px 1fr;grid-template-rows:56px 1fr;min-height:100vh}
+.topbar{grid-column:1/-1;background:var(--ink2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:50}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:16px 0;position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto}
+.main{padding:28px 28px 48px;overflow-y:auto}
+
+/* TOPBAR */
+.brand{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;color:var(--white);letter-spacing:-.3px;display:flex;align-items:center;gap:8px}
+.brand-dot{width:8px;height:8px;background:var(--accent);border-radius:2px;display:inline-block}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.owner-badge{background:var(--surface3);border:1px solid var(--border2);border-radius:99px;padding:4px 12px;font-size:12px;font-weight:600;color:var(--accent);font-family:'DM Mono',monospace;letter-spacing:.5px}
+.topbar-stat{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace}
+.topbar-stat span{color:var(--white);font-weight:500}
+
+/* SIDEBAR */
+.sidebar-section{padding:4px 12px 8px;margin-bottom:4px}
+.sidebar-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;padding:0 8px;margin-bottom:6px}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r8);cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);transition:all .15s;border:none;background:none;width:100%;text-align:left;font-family:'Instrument Sans',sans-serif}
+.sidebar-item:hover{background:var(--surface3);color:var(--white)}
+.sidebar-item.active{background:var(--surface3);color:var(--white)}
+.sidebar-item .icon{width:16px;text-align:center;font-size:14px}
+.sidebar-item .badge{margin-left:auto;background:var(--accent);color:var(--ink);font-size:10px;font-weight:700;border-radius:99px;padding:1px 7px;font-family:'DM Mono',monospace}
+
+/* MAIN CONTENT */
+.page{display:none}
+.page.active{display:block}
+.page-header{margin-bottom:24px}
+.page-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:700;color:var(--white);letter-spacing:-.5px;margin-bottom:4px}
+.page-sub{font-size:13px;color:var(--muted)}
+
+/* STAT CARDS */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r12);padding:18px 20px;position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat-card.c-yellow::after{background:var(--accent)}
+.stat-card.c-green::after{background:var(--green)}
+.stat-card.c-blue::after{background:var(--blue)}
+.stat-card.c-orange::after{background:var(--orange)}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:8px}
+.stat-value{font-family:'Syne',sans-serif;font-size:30px;font-weight:700;color:var(--white);line-height:1}
+.stat-meta{font-size:11px;color:var(--muted);margin-top:6px}
+
+/* TABLE */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r12);overflow:hidden}
+.table-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.table-title{font-size:13px;font-weight:600;color:var(--white)}
+.search-input{background:var(--surface3);border:1px solid var(--border2);border-radius:var(--r8);padding:7px 12px;font-family:'Instrument Sans',sans-serif;font-size:13px;color:var(--white);outline:none;width:200px}
+.search-input::placeholder{color:var(--muted)}
+.search-input:focus{border-color:var(--accent)}
+table{width:100%;border-collapse:collapse}
+th{padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--border);background:var(--surface2)}
+td{padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;color:var(--white);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--surface2)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;font-family:'DM Mono',monospace}
+.badge-active{background:rgba(74,222,128,.12);color:var(--green);border:1px solid rgba(74,222,128,.25)}
+.badge-trial{background:rgba(232,197,71,.12);color:var(--accent);border:1px solid rgba(232,197,71,.25)}
+.badge-suspended{background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.25)}
+.badge-expired{background:rgba(107,107,107,.2);color:var(--muted);border:1px solid var(--border2)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:var(--r8);padding:7px 14px;font-family:'Instrument Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-ghost{background:none;border:1px solid var(--border2);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--white);color:var(--white)}
+.btn-accent{background:var(--accent);color:var(--ink);font-weight:700}
+.btn-accent:hover{background:var(--accent2)}
+.btn-danger{background:rgba(248,113,113,.15);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+.btn-danger:hover{background:rgba(248,113,113,.25)}
+.btn-success{background:rgba(74,222,128,.15);color:var(--green);border:1px solid rgba(74,222,128,.3)}
+.btn-success:hover{background:rgba(74,222,128,.25)}
+.btn-blue{background:rgba(96,165,250,.15);color:var(--blue);border:1px solid rgba(96,165,250,.3)}
+.btn-blue:hover{background:rgba(96,165,250,.25)}
+.action-group{display:flex;gap:6px}
+
+/* DEALER DETAIL */
+.detail-grid{display:grid;grid-template-columns:300px 1fr;gap:20px}
+.detail-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r12);padding:20px}
+.detail-card h3{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
+.detail-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border)}
+.detail-row:last-child{border-bottom:none}
+.dr-key{font-size:12px;color:var(--muted)}
+.dr-val{font-size:12px;color:var(--white);font-weight:500;text-align:right;max-width:160px;word-break:break-all}
+.dealer-avatar{width:48px;height:48px;border-radius:var(--r8);background:var(--surface3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--accent);margin-bottom:12px}
+.dealer-name{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:2px}
+.dealer-city{font-size:13px;color:var(--muted);margin-bottom:14px}
+
+/* MINI STATS */
+.mini-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.mini-stat{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r8);padding:12px 14px}
+.mini-stat-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--white)}
+.mini-stat-key{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ACTIVITY LOG */
+.activity-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.activity-item:last-child{border-bottom:none}
+.act-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.act-dot.check{background:var(--blue)}
+.act-dot.enquiry{background:var(--orange)}
+.act-dot.login{background:var(--green)}
+.act-text{font-size:13px;color:var(--white);line-height:1.4}
+.act-time{font-size:11px;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace}
+
+/* IMPERSONATE BANNER */
+.imp-banner{display:none;background:var(--accent);color:var(--ink);padding:10px 20px;font-size:13px;font-weight:600;align-items:center;gap:12px;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);border-radius:99px;z-index:999;box-shadow:0 4px 24px rgba(0,0,0,.5)}
+.imp-banner.show{display:flex}
+.imp-exit{background:var(--ink);color:var(--accent);border:none;border-radius:99px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Instrument Sans',sans-serif}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r16);padding:28px;width:100%;max-width:480px}
+.modal h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;margin-bottom:6px}
+.modal p{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+.form-row{margin-bottom:14px}
+.form-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.form-input{width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:var(--r8);padding:10px 12px;font-family:'Instrument Sans',sans-serif;font-size:14px;color:var(--white);outline:none}
+.form-input:focus{border-color:var(--accent)}
+.form-input::placeholder{color:var(--muted)}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+
+/* CHART PLACEHOLDER */
+.chart-area{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r12);padding:20px;margin-bottom:20px}
+.chart-title{font-size:13px;font-weight:600;color:var(--white);margin-bottom:16px}
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:80px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar{background:var(--accent);border-radius:3px 3px 0 0;width:100%;opacity:.7;transition:opacity .2s}
+.bar:hover{opacity:1}
+.bar-label{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace}
+
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface3);border:1px solid var(--border2);color:var(--white);padding:12px 18px;border-radius:var(--r8);font-size:13px;opacity:0;transform:translateY(8px);transition:all .25s;z-index:999;font-weight:500}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.green{border-color:var(--green);color:var(--green)}
+.toast.red{border-color:var(--red);color:var(--red)}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.page.active{animation:fadeIn .2s ease}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="shell">
+<header class="topbar">
+  <div class="brand"><span class="brand-dot"></span> TilePortal</div>
+  <div class="topbar-right">
+    <span class="topbar-stat">Active dealers: <span id="tb-active">—</span></span>
+    <span class="topbar-stat">Checks today: <span id="tb-checks">—</span></span>
+    <span class="owner-badge">⬡ OWNER</span>
+  </div>
+</header>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-label">Overview</div>
+    <button class="sidebar-item active" onclick="nav('overview',this)"><span class="icon">◈</span> Dashboard</button>
+    <button class="sidebar-item" onclick="nav('dealers',this)"><span class="icon">◉</span> All Dealers <span class="badge" id="sb-dealer-count">0</span></button>
+    <button class="sidebar-item" onclick="nav('activity',this)"><span class="icon">◎</span> Activity Log</button>
+  </div>
+  <div class="sidebar-section" style="margin-top:8px">
+    <div class="sidebar-label">Dealer View</div>
+    <button class="sidebar-item" onclick="nav('dealer-detail',this)" id="sb-dealer-detail" style="display:none"><span class="icon">▸</span> <span id="sb-dd-name">Dealer</span></button>
+  </div>
+  <div class="sidebar-section" style="margin-top:8px">
+    <div class="sidebar-label">System</div>
+    <button class="sidebar-item" onclick="openAddDealer()"><span class="icon">＋</span> Add Dealer</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- OVERVIEW PAGE -->
+  <div class="page active" id="page-overview">
+    <div class="page-header">
+      <div class="page-title">Owner Dashboard</div>
+      <div class="page-sub">Complete visibility across all dealer accounts</div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card c-yellow">
+        <div class="stat-label">Total Dealers</div>
+        <div class="stat-value" id="st-total">0</div>
+        <div class="stat-meta">All registered accounts</div>
+      </div>
+      <div class="stat-card c-green">
+        <div class="stat-label">Active</div>
+        <div class="stat-value" id="st-active">0</div>
+        <div class="stat-meta">Paid & running</div>
+      </div>
+      <div class="stat-card c-blue">
+        <div class="stat-label">Availability Checks</div>
+        <div class="stat-value" id="st-checks">0</div>
+        <div class="stat-meta">Across all portals today</div>
+      </div>
+      <div class="stat-card c-orange">
+        <div class="stat-label">WA Enquiries</div>
+        <div class="stat-value" id="st-wa">0</div>
+        <div class="stat-meta">Sent today</div>
+      </div>
+    </div>
+
+    <div class="chart-area">
+      <div class="chart-title">Availability Checks — Last 7 Days (All Dealers)</div>
+      <div class="bar-chart" id="overview-chart"></div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-header">
+        <div class="table-title">Recent Activity</div>
+      </div>
+      <div style="padding:4px 0" id="overview-activity"></div>
+    </div>
+  </div>
+
+  <!-- ALL DEALERS PAGE -->
+  <div class="page" id="page-dealers">
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div class="page-title">All Dealers</div>
+        <div class="page-sub">Click any dealer to view their full account</div>
+      </div>
+      <button class="btn btn-accent" onclick="openAddDealer()">＋ Add Dealer</button>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header">
+        <div class="table-title" id="dealer-count-label">— dealers</div>
+        <input class="search-input" placeholder="Search dealer…" oninput="filterDealers(this.value)">
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Dealer</th>
+            <th>City</th>
+            <th>Products</th>
+            <th>Checks Today</th>
+            <th>WA Enquiries</th>
+            <th>Status</th>
+            <th>Expires</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="dealer-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ACTIVITY LOG PAGE -->
+  <div class="page" id="page-activity">
+    <div class="page-header">
+      <div class="page-title">Activity Log</div>
+      <div class="page-sub">Every availability check and enquiry across all portals</div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header">
+        <div class="table-title">All Events</div>
+        <input class="search-input" placeholder="Filter by dealer / product…" oninput="filterActivity(this.value)">
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Dealer</th>
+            <th>Event</th>
+            <th>Product Code</th>
+            <th>Product Name</th>
+            <th>Qty Requested</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody id="activity-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- DEALER DETAIL PAGE -->
+  <div class="page" id="page-dealer-detail">
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div class="page-title" id="dd-title">Dealer Detail</div>
+        <div class="page-sub" id="dd-sub">Full account view</div>
+      </div>
+      <div class="action-group">
+        <button class="btn btn-blue" onclick="impersonate()" id="dd-impersonate-btn">⇥ Open as Admin</button>
+        <button class="btn btn-danger" onclick="toggleSuspend()" id="dd-suspend-btn">Suspend</button>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <!-- LEFT COLUMN -->
+      <div>
+        <div class="detail-card" style="margin-bottom:14px">
+          <div class="dealer-avatar" id="dd-avatar">—</div>
+          <div class="dealer-name" id="dd-name">—</div>
+          <div class="dealer-city" id="dd-city">—</div>
+          <div class="detail-row"><span class="dr-key">Status</span><span class="dr-val" id="dd-status-badge">—</span></div>
+          <div class="detail-row"><span class="dr-key">Owner</span><span class="dr-val" id="dd-owner">—</span></div>
+          <div class="detail-row"><span class="dr-key">WhatsApp</span><span class="dr-val" id="dd-wa">—</span></div>
+          <div class="detail-row"><span class="dr-key">Joined</span><span class="dr-val" id="dd-joined">—</span></div>
+          <div class="detail-row"><span class="dr-key">Expires</span><span class="dr-val" id="dd-expires">—</span></div>
+          <div class="detail-row"><span class="dr-key">Portal URL</span><span class="dr-val"><a id="dd-url" href="#" style="color:var(--blue)" target="_blank">Open ↗</a></span></div>
+        </div>
+        <div class="detail-card">
+          <h3>This Month</h3>
+          <div class="mini-stat-grid">
+            <div class="mini-stat"><div class="mini-stat-val" id="dd-checks">0</div><div class="mini-stat-key">Checks</div></div>
+            <div class="mini-stat"><div class="mini-stat-val" id="dd-wa-count">0</div><div class="mini-stat-key">WA Enquiries</div></div>
+            <div class="mini-stat"><div class="mini-stat-val" id="dd-products">0</div><div class="mini-stat-key">Products</div></div>
+            <div class="mini-stat"><div class="mini-stat-val" id="dd-stock-updates">0</div><div class="mini-stat-key">Stock Updates</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div>
+        <div class="chart-area">
+          <div class="chart-title">Availability Checks — Last 7 Days</div>
+          <div class="bar-chart" id="dd-chart"></div>
+        </div>
+        <div class="detail-card" style="margin-bottom:14px">
+          <h3>Products in Catalogue</h3>
+          <table style="margin-top:4px">
+            <thead><tr><th>Code</th><th>Name</th><th>Size</th><th>Category</th><th>Stock</th></tr></thead>
+            <tbody id="dd-product-table"></tbody>
+          </table>
+        </div>
+        <div class="detail-card">
+          <h3>Recent Activity</h3>
+          <div id="dd-activity-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div><!-- end shell -->
+
+<!-- ADD DEALER MODAL -->
+<div class="modal-bg" id="add-dealer-modal">
+  <div class="modal">
+    <h2>Add New Dealer</h2>
+    <p>Creates an isolated portal with its own product catalogue, stock, and WhatsApp number.</p>
+    <div class="form-row">
+      <div class="form-label">Business Name *</div>
+      <input class="form-input" id="new-biz" placeholder="e.g. Raj Tiles & Marbles">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-row">
+        <div class="form-label">Owner Name *</div>
+        <input class="form-input" id="new-owner" placeholder="Rajesh Kumar">
+      </div>
+      <div class="form-row">
+        <div class="form-label">City</div>
+        <input class="form-input" id="new-city" placeholder="Hyderabad">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-label">Sales WhatsApp Number *</div>
+      <input class="form-input" id="new-wa" placeholder="91XXXXXXXXXX">
+    </div>
+    <div class="form-row">
+      <div class="form-label">Subscription Expires</div>
+      <input class="form-input" type="date" id="new-expires">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-accent" onclick="addDealer()">Create Dealer Portal</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPERSONATE BANNER -->
+<div class="imp-banner" id="imp-banner">
+  <span>👁 Viewing as: <strong id="imp-name">—</strong> (Admin Mode)</span>
+  <button class="imp-exit" onclick="exitImpersonate()">✕ Exit</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════
+// SUPABASE CONFIG  — replace in production
+// ═══════════════════════════════════════
+const SUPABASE_URL = 'https://zpxxgfskdlspoiqdbvma.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_xKOg2BceGja-s14Q33CwYw_AGBUPfZI';
+// When SUPABASE_URL is placeholder, runs in DEMO MODE
+const DEMO = false;
+
+// ═══════════════════════════════════════
+// DEMO DATA
+// ═══════════════════════════════════════
+const DEMO_DEALERS = [
+  { id:'D001', biz:'Raj Tiles & Marbles',   owner:'Rajesh Kumar',  city:'Hyderabad',  wa:'919876543210', status:'active',    joined:'2025-01-10', expires:'2026-06-30', products:12, checksToday:47, waToday:8,  stockUpdates:18 },
+  { id:'D002', biz:'Shree Flooring World',  owner:'Suresh Patel',  city:'Ahmedabad',  wa:'919823456789', status:'active',    joined:'2025-02-14', expires:'2026-05-14', products:9,  checksToday:31, waToday:5,  stockUpdates:12 },
+  { id:'D003', biz:'Metro Tile House',      owner:'Anil Sharma',   city:'Pune',       wa:'919812345678', status:'trial',     joined:'2025-05-20', expires:'2025-06-20', products:5,  checksToday:14, waToday:3,  stockUpdates:4  },
+  { id:'D004', biz:'Classic Stone Gallery', owner:'Meena Iyer',    city:'Chennai',    wa:'919845678901', status:'suspended', joined:'2024-11-01', expires:'2025-04-30', products:18, checksToday:0,  waToday:0,  stockUpdates:0  },
+  { id:'D005', biz:'Modern Floor Studio',   owner:'Vikram Singh',  city:'Delhi',      wa:'919856789012', status:'active',    joined:'2025-03-01', expires:'2026-03-01', products:22, checksToday:89, waToday:14, stockUpdates:30 },
+];
+
+const DEMO_PRODUCTS_BY_DEALER = {
+  'D001': [
+    { code:'FT1025', name:'Marble White', size:'600×600', cat:'Polished', stock:1500 },
+    { code:'FT1026', name:'Slate Grey',   size:'600×600', cat:'Matt',     stock:200  },
+    { code:'FT1027', name:'Ivory Cream',  size:'800×800', cat:'Polished', stock:800  },
+  ],
+  'D005': [
+    { code:'MT2001', name:'Arctic Snow',  size:'600×1200', cat:'Polished', stock:2400 },
+    { code:'MT2002', name:'Charcoal Dark',size:'600×600',  cat:'Matt',     stock:100  },
+  ],
+};
+
+const DEMO_ACTIVITY = [
+  { time:'09:41 AM', dealer:'Raj Tiles',        event:'Availability Check', code:'FT1025', name:'Marble White',  qty:500,  result:'available'  },
+  { time:'09:38 AM', dealer:'Modern Floor',      event:'WA Enquiry Sent',    code:'MT2002', name:'Charcoal Dark', qty:1200, result:'check_sales' },
+  { time:'09:22 AM', dealer:'Shree Flooring',    event:'Availability Check', code:'FT2031', name:'Terra Brown',   qty:200,  result:'available'  },
+  { time:'09:15 AM', dealer:'Metro Tile House',  event:'Availability Check', code:'FT1026', name:'Slate Grey',    qty:800,  result:'check_sales' },
+  { time:'08:55 AM', dealer:'Modern Floor',      event:'Availability Check', code:'MT2001', name:'Arctic Snow',   qty:300,  result:'available'  },
+  { time:'08:40 AM', dealer:'Raj Tiles',         event:'WA Enquiry Sent',    code:'FT1027', name:'Ivory Cream',   qty:1500, result:'check_sales' },
+  { time:'08:30 AM', dealer:'Shree Flooring',    event:'Availability Check', code:'FT2044', name:'Rose Beige',    qty:100,  result:'available'  },
+];
+
+const CHART_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const CHART_ALL  = [120,98,145,87,160,42,181];
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let dealers = [...DEMO_DEALERS];
+let currentDealer = null;
+let impersonating = false;
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+function init() {
+  updateTopbar();
+  updateStatCards();
+  renderOverviewChart();
+  renderOverviewActivity();
+  renderDealerTable();
+  renderActivityTable(DEMO_ACTIVITY);
+  document.getElementById('sb-dealer-count').textContent = dealers.length;
+}
+
+function updateTopbar() {
+  const active = dealers.filter(d=>d.status==='active').length;
+  const checks = dealers.reduce((s,d)=>s+d.checksToday,0);
+  document.getElementById('tb-active').textContent = active;
+  document.getElementById('tb-checks').textContent = checks;
+}
+
+function updateStatCards() {
+  document.getElementById('st-total').textContent  = dealers.length;
+  document.getElementById('st-active').textContent = dealers.filter(d=>d.status==='active').length;
+  document.getElementById('st-checks').textContent = dealers.reduce((s,d)=>s+d.checksToday,0);
+  document.getElementById('st-wa').textContent     = dealers.reduce((s,d)=>s+d.waToday,0);
+}
+
+// ═══════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════
+function nav(page, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  if(el) el.classList.add('active');
+}
+
+// ═══════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════
+function renderBarChart(containerId, values, labels, color='var(--accent)') {
+  const max = Math.max(...values);
+  const el = document.getElementById(containerId);
+  el.innerHTML = values.map((v,i) => `
+    <div class="bar-col">
+      <div class="bar" style="height:${Math.max(4,Math.round((v/max)*72))}px;background:${color}" title="${v}"></div>
+      <div class="bar-label">${labels[i]}</div>
+    </div>
+  `).join('');
+}
+
+function renderOverviewChart() {
+  renderBarChart('overview-chart', CHART_ALL, CHART_DAYS);
+}
+
+function renderOverviewActivity() {
+  const el = document.getElementById('overview-activity');
+  el.innerHTML = DEMO_ACTIVITY.slice(0,5).map(a => `
+    <div class="activity-item" style="padding:10px 16px">
+      <div class="act-dot ${a.event.includes('WA')?'enquiry':'check'}"></div>
+      <div>
+        <div class="act-text"><strong>${a.dealer}</strong> — ${a.event}: ${a.code} (${a.qty} pcs) → <span style="color:${a.result==='available'?'var(--green)':'var(--orange)'}">${a.result==='available'?'Available':'Check Sales'}</span></div>
+        <div class="act-time">${a.time} today</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════
+// DEALER TABLE
+// ═══════════════════════════════════════
+function statusBadge(s) {
+  const map = { active:'badge-active', trial:'badge-trial', suspended:'badge-suspended', expired:'badge-expired' };
+  const dot = { active:'●', trial:'◉', suspended:'✕', expired:'○' };
+  return `<span class="badge ${map[s]||'badge-expired'}">${dot[s]||'○'} ${s}</span>`;
+}
+
+function renderDealerTable(list) {
+  list = list || dealers;
+  document.getElementById('dealer-count-label').textContent = `${list.length} dealer${list.length!==1?'s':''}`;
+  document.getElementById('dealer-table-body').innerHTML = list.map(d => `
+    <tr style="cursor:pointer" onclick="openDealerDetail('${d.id}')">
+      <td>
+        <div style="font-weight:600">${d.biz}</div>
+        <div style="font-size:11px;color:var(--muted)">${d.owner}</div>
+      </td>
+      <td style="color:var(--muted)">${d.city}</td>
+      <td><span style="font-family:'DM Mono',monospace">${d.products}</span></td>
+      <td><span style="font-family:'DM Mono',monospace;color:var(--blue)">${d.checksToday}</span></td>
+      <td><span style="font-family:'DM Mono',monospace;color:var(--orange)">${d.waToday}</span></td>
+      <td>${statusBadge(d.status)}</td>
+      <td style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace">${d.expires}</td>
+      <td onclick="event.stopPropagation()">
+        <div class="action-group">
+          <button class="btn btn-blue" onclick="openDealerDetail('${d.id}')">View</button>
+          <button class="btn ${d.status==='suspended'?'btn-success':'btn-danger'}" onclick="toggleDealerStatus('${d.id}')">${d.status==='suspended'?'Activate':'Suspend'}</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filterDealers(q) {
+  const filtered = dealers.filter(d =>
+    d.biz.toLowerCase().includes(q.toLowerCase()) ||
+    d.owner.toLowerCase().includes(q.toLowerCase()) ||
+    d.city.toLowerCase().includes(q.toLowerCase())
+  );
+  renderDealerTable(filtered);
+}
+
+// ═══════════════════════════════════════
+// ACTIVITY TABLE
+// ═══════════════════════════════════════
+function renderActivityTable(list) {
+  document.getElementById('activity-table-body').innerHTML = list.map(a => `
+    <tr>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">${a.time}</td>
+      <td style="font-weight:500">${a.dealer}</td>
+      <td style="color:${a.event.includes('WA')?'var(--orange)':'var(--blue)'}">${a.event}</td>
+      <td style="font-family:'DM Mono',monospace">${a.code}</td>
+      <td>${a.name}</td>
+      <td style="font-family:'DM Mono',monospace">${a.qty} pcs</td>
+      <td><span style="color:${a.result==='available'?'var(--green)':'var(--orange)'};font-weight:600">${a.result==='available'?'Available':'Check Sales'}</span></td>
+    </tr>
+  `).join('');
+}
+
+function filterActivity(q) {
+  const filtered = DEMO_ACTIVITY.filter(a =>
+    a.dealer.toLowerCase().includes(q.toLowerCase()) ||
+    a.code.toLowerCase().includes(q.toLowerCase()) ||
+    a.name.toLowerCase().includes(q.toLowerCase())
+  );
+  renderActivityTable(filtered);
+}
+
+// ═══════════════════════════════════════
+// DEALER DETAIL
+// ═══════════════════════════════════════
+function openDealerDetail(id) {
+  const d = dealers.find(x=>x.id===id);
+  if(!d) return;
+  currentDealer = d;
+
+  // Show sidebar item
+  const sdi = document.getElementById('sb-dealer-detail');
+  sdi.style.display = 'flex';
+  document.getElementById('sb-dd-name').textContent = d.biz.split(' ')[0];
+
+  // Populate
+  document.getElementById('dd-avatar').textContent   = d.biz[0];
+  document.getElementById('dd-title').textContent    = d.biz;
+  document.getElementById('dd-sub').textContent      = `${d.owner} · ${d.city}`;
+  document.getElementById('dd-name').textContent     = d.biz;
+  document.getElementById('dd-city').textContent     = `${d.city} · ${d.owner}`;
+  document.getElementById('dd-owner').textContent    = d.owner;
+  document.getElementById('dd-wa').textContent       = '+' + d.wa;
+  document.getElementById('dd-joined').textContent   = d.joined;
+  document.getElementById('dd-expires').textContent  = d.expires;
+  document.getElementById('dd-status-badge').innerHTML = statusBadge(d.status);
+  document.getElementById('dd-url').href = `dealer-portal.html?tenant=${d.id}`;
+  document.getElementById('dd-checks').textContent       = d.checksToday;
+  document.getElementById('dd-wa-count').textContent     = d.waToday;
+  document.getElementById('dd-products').textContent     = d.products;
+  document.getElementById('dd-stock-updates').textContent= d.stockUpdates;
+
+  const suspendBtn = document.getElementById('dd-suspend-btn');
+  suspendBtn.textContent = d.status==='suspended'?'Activate':'Suspend';
+  suspendBtn.className   = `btn ${d.status==='suspended'?'btn-success':'btn-danger'}`;
+
+  // Chart
+  const vals = CHART_DAYS.map(()=>Math.floor(Math.random()*80+10));
+  renderBarChart('dd-chart', vals, CHART_DAYS, 'var(--blue)');
+
+  // Products
+  const prods = DEMO_PRODUCTS_BY_DEALER[id] || [];
+  document.getElementById('dd-product-table').innerHTML = prods.length
+    ? prods.map(p=>`<tr><td style="font-family:'DM Mono',monospace">${p.code}</td><td>${p.name}</td><td>${p.size}</td><td>${p.cat}</td><td style="font-family:'DM Mono',monospace">${p.stock}</td></tr>`).join('')
+    : `<tr><td colspan="5" style="color:var(--muted);font-size:12px">No products added yet</td></tr>`;
+
+  // Activity
+  const acts = DEMO_ACTIVITY.filter(a => a.dealer.toLowerCase().includes(d.biz.split(' ')[0].toLowerCase()));
+  document.getElementById('dd-activity-list').innerHTML = (acts.length ? acts : DEMO_ACTIVITY.slice(0,3)).map(a=>`
+    <div class="activity-item">
+      <div class="act-dot ${a.event.includes('WA')?'enquiry':'check'}"></div>
+      <div>
+        <div class="act-text">${a.event}: <strong>${a.code}</strong> ${a.name} — ${a.qty} pcs → <span style="color:${a.result==='available'?'var(--green)':'var(--orange)'}">${a.result==='available'?'Available':'Check Sales'}</span></div>
+        <div class="act-time">${a.time} today</div>
+      </div>
+    </div>
+  `).join('');
+
+  nav('dealer-detail', document.getElementById('sb-dealer-detail'));
+}
+
+// ═══════════════════════════════════════
+// DEALER ACTIONS
+// ═══════════════════════════════════════
+function toggleDealerStatus(id) {
+  const d = dealers.find(x=>x.id===id);
+  if(!d) return;
+  d.status = d.status==='suspended' ? 'active' : 'suspended';
+  renderDealerTable();
+  showToast(`${d.biz} ${d.status==='suspended'?'suspended':'activated'}`, d.status!=='suspended');
+  if(currentDealer?.id===id) openDealerDetail(id);
+}
+
+function toggleSuspend() {
+  if(!currentDealer) return;
+  toggleDealerStatus(currentDealer.id);
+}
+
+function impersonate() {
+  if(!currentDealer) return;
+  document.getElementById('imp-name').textContent = currentDealer.biz;
+  document.getElementById('imp-banner').classList.add('show');
+  impersonating = true;
+  showToast(`Now viewing as ${currentDealer.biz} admin`);
+  // In production: open dealer-admin.html?tenant=ID&owner_token=TOKEN in new tab
+  setTimeout(()=>{
+    window.open(`dealer-admin.html?tenant=${currentDealer.id}&impersonate=1`, '_blank');
+  }, 300);
+}
+
+function exitImpersonate() {
+  document.getElementById('imp-banner').classList.remove('show');
+  impersonating = false;
+}
+
+// ═══════════════════════════════════════
+// ADD DEALER MODAL
+// ═══════════════════════════════════════
+function openAddDealer() {
+  // Set default expiry to 30 days from now
+  const d = new Date(); d.setDate(d.getDate()+30);
+  document.getElementById('new-expires').value = d.toISOString().split('T')[0];
+  document.getElementById('add-dealer-modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('add-dealer-modal').classList.remove('open');
+}
+
+function addDealer() {
+  const biz  = document.getElementById('new-biz').value.trim();
+  const own  = document.getElementById('new-owner').value.trim();
+  const city = document.getElementById('new-city').value.trim();
+  const wa   = document.getElementById('new-wa').value.trim();
+  const exp  = document.getElementById('new-expires').value;
+  if(!biz||!own||!wa){ showToast('Business name, owner, and WhatsApp are required'); return; }
+
+  const newId = 'D' + String(dealers.length+1).padStart(3,'0');
+  dealers.push({ id:newId, biz, owner:own, city:city||'—', wa, status:'trial',
+    joined:new Date().toISOString().split('T')[0], expires:exp||'—',
+    products:0, checksToday:0, waToday:0, stockUpdates:0 });
+
+  closeModal();
+  renderDealerTable();
+  updateStatCards();
+  updateTopbar();
+  document.getElementById('sb-dealer-count').textContent = dealers.length;
+  showToast(`${biz} added as Trial dealer ✓`, true);
+}
+
+// ═══════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════
+function showToast(msg, success=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show${success?' green':''}`;
+  setTimeout(()=>{ t.className='toast'; }, 3000);
+}
+
+document.getElementById('add-dealer-modal').addEventListener('click', function(e){
+  if(e.target===this) closeModal();
+});
+
+init();
+</script>
+</body>
+</html>

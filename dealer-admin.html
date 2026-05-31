@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TilePortal — Dealer Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #F7F4F0;
+  --white:   #FFFFFF;
+  --ink:     #1A1410;
+  --ink2:    #2C2420;
+  --muted:   #8A8078;
+  --border:  #E4DDD6;
+  --border2: #D0C8C0;
+  --surface: #FFFFFF;
+  --clay:    #C47A3A;
+  --clay-lt: #F5E6D4;
+  --clay-dk: #9A5C20;
+  --green:   #2D7A50;
+  --green-lt:#E8F5EE;
+  --red:     #C43A3A;
+  --red-lt:  #FDEAEA;
+  --blue:    #3A6AC4;
+  --blue-lt: #EAF0FD;
+  --r8:8px;--r12:12px;--r16:16px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif}
+
+.shell{display:grid;grid-template-columns:200px 1fr;grid-template-rows:54px 1fr;min-height:100vh}
+.topbar{grid-column:1/-1;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:14px;position:sticky;top:0;z-index:50}
+.sidebar{background:var(--white);border-right:1px solid var(--border);padding:12px 8px;position:sticky;top:54px;height:calc(100vh - 54px);overflow-y:auto}
+.main{padding:24px 24px 48px;background:var(--bg)}
+
+.brand{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:16px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.brand-sq{width:26px;height:26px;background:var(--clay);border-radius:5px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:2px;padding:5px}
+.brand-sq span{background:white;border-radius:1px;display:block}
+.tenant-chip{background:var(--clay-lt);color:var(--clay-dk);font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;margin-left:4px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.view-portal-btn{background:var(--clay);color:white;border:none;border-radius:var(--r8);padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;display:flex;align-items:center;gap:6px}
+.view-portal-btn:hover{background:var(--clay-dk)}
+
+.sidebar-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:8px 8px 4px;margin-top:4px}
+.sidebar-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r8);cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);transition:all .15s;border:none;background:none;width:100%;text-align:left;font-family:'Plus Jakarta Sans',sans-serif}
+.sidebar-item:hover{background:var(--bg);color:var(--ink)}
+.sidebar-item.active{background:var(--clay-lt);color:var(--clay-dk);font-weight:600}
+.sidebar-item .si-count{margin-left:auto;font-size:11px;font-family:'DM Mono',monospace;background:var(--border);color:var(--muted);padding:1px 7px;border-radius:99px}
+.sidebar-item.active .si-count{background:var(--clay);color:white}
+
+.page{display:none;animation:fadeIn .2s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+.pg-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px}
+.pg-title{font-size:22px;font-weight:800;color:var(--ink);letter-spacing:-.4px}
+.pg-sub{font-size:13px;color:var(--muted);margin-top:2px}
+
+/* STAT ROW */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.scard{background:var(--white);border:1px solid var(--border);border-radius:var(--r12);padding:16px 18px}
+.scard-val{font-size:26px;font-weight:800;color:var(--ink);letter-spacing:-.5px;font-family:'DM Mono',monospace}
+.scard-key{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.6px;margin-top:4px}
+
+/* TABLE */
+.table-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r12);overflow:hidden}
+.tc-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.tc-title{font-size:13px;font-weight:700;color:var(--ink)}
+table{width:100%;border-collapse:collapse}
+th{background:var(--bg);padding:9px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;border-bottom:1px solid var(--border)}
+td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--ink);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#FDFAF8}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;border:none;border-radius:var(--r8);padding:7px 14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s}
+.btn-primary{background:var(--clay);color:white}
+.btn-primary:hover{background:var(--clay-dk)}
+.btn-outline{background:none;border:1.5px solid var(--border2);color:var(--ink);font-weight:600}
+.btn-outline:hover{border-color:var(--clay);color:var(--clay)}
+.btn-danger{background:var(--red-lt);color:var(--red);border:1px solid rgba(196,58,58,.2)}
+.btn-danger:hover{background:rgba(196,58,58,.15)}
+.btn-success{background:var(--green-lt);color:var(--green);border:1px solid rgba(45,122,80,.2)}
+.btn-blue{background:var(--blue-lt);color:var(--blue);border:1px solid rgba(58,106,196,.2)}
+.btn-lg{padding:11px 22px;font-size:14px}
+
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;font-family:'DM Mono',monospace}
+.badge-active{background:var(--green-lt);color:var(--green)}
+.badge-inactive{background:var(--red-lt);color:var(--red)}
+
+/* FORM */
+.form-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r16);padding:22px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.frow{margin-bottom:0}
+.flabel{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px}
+.finput{width:100%;border:1.5px solid var(--border);border-radius:var(--r8);padding:9px 12px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;color:var(--ink);background:var(--bg);outline:none;transition:border-color .2s}
+.finput:focus{border-color:var(--clay);background:white}
+.finput::placeholder{color:var(--muted)}
+.finput:disabled{opacity:.5;cursor:default}
+select.finput{appearance:none;cursor:pointer}
+
+/* STOCK */
+.stock-update-wrap{background:var(--white);border:1px solid var(--border);border-radius:var(--r12);overflow:hidden}
+.stock-info-bar{background:var(--clay-lt);border-bottom:1px solid var(--border);padding:10px 16px;font-size:13px;color:var(--clay-dk);font-weight:600;display:flex;align-items:center;gap:8px}
+.stock-qty-input{width:100px;border:1.5px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'DM Mono',monospace;font-size:14px;text-align:right;color:var(--ink);background:var(--bg)}
+.stock-qty-input:focus{outline:none;border-color:var(--clay);background:white}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(26,20,16,.5);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.modal-bg.open{display:flex}
+.modal{background:white;border-radius:var(--r16);padding:26px;width:100%;max-width:500px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal h2{font-size:18px;font-weight:800;margin-bottom:4px}
+.modal p{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.6}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+
+/* IMPERSONATE NOTICE */
+.imp-notice{background:linear-gradient(90deg,#0D0D0D,#1A1A1A);color:#E8C547;padding:8px 16px;font-size:12px;font-weight:700;display:none;align-items:center;gap:8px;border-bottom:1px solid #333}
+.imp-notice.show{display:flex}
+
+.toast{position:fixed;bottom:20px;right:20px;background:var(--ink);color:white;padding:11px 16px;border-radius:var(--r8);font-size:13px;font-weight:500;opacity:0;transform:translateY(6px);transition:all .25s;z-index:999}
+.toast.show{opacity:1;transform:none}
+.toast.ok{background:var(--green)}
+
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+</style>
+</head>
+<body>
+
+<!-- IMPERSONATE NOTICE -->
+<div class="imp-notice" id="imp-notice">
+  👁 Owner View — You are viewing this as the dealer. <a href="owner-dashboard.html" style="color:#E8C547;margin-left:8px">← Return to Owner Dashboard</a>
+</div>
+
+<div class="shell">
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-sq"><span></span><span></span><span></span><span></span></div>
+    TilePortal
+  </div>
+  <span class="tenant-chip" id="tenant-name">Admin</span>
+  <div class="topbar-right">
+    <span style="font-size:12px;color:var(--muted)" id="last-stock-update">Stock last updated: —</span>
+    <button class="view-portal-btn" onclick="viewPortal()">↗ View Live Portal</button>
+  </div>
+</header>
+
+<aside class="sidebar">
+  <div class="sidebar-label">Manage</div>
+  <button class="sidebar-item active" onclick="nav('dashboard',this)">📊 Dashboard</button>
+  <button class="sidebar-item" onclick="nav('stock',this)">📦 Daily Stock Update</button>
+  <button class="sidebar-item" onclick="nav('products',this)">🏷 Products <span class="si-count" id="sb-prod-count">0</span></button>
+  <button class="sidebar-item" onclick="nav('add-product',this)">➕ Add Product</button>
+  <div class="sidebar-label" style="margin-top:8px">Account</div>
+  <button class="sidebar-item" onclick="nav('settings',this)">⚙ Settings</button>
+</aside>
+
+<main class="main">
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="pg-header">
+      <div><div class="pg-title">Dashboard</div><div class="pg-sub">Your portal at a glance</div></div>
+    </div>
+    <div class="stat-row">
+      <div class="scard"><div class="scard-val" id="ds-products">0</div><div class="scard-key">Products</div></div>
+      <div class="scard"><div class="scard-val" id="ds-checks">0</div><div class="scard-key">Checks Today</div></div>
+      <div class="scard"><div class="scard-val" id="ds-wa">0</div><div class="scard-key">WA Enquiries</div></div>
+      <div class="scard"><div class="scard-val" id="ds-low">0</div><div class="scard-key">Low Stock Items</div></div>
+    </div>
+
+    <!-- Recent activity -->
+    <div class="table-card">
+      <div class="tc-head"><div class="tc-title">Recent Availability Checks</div></div>
+      <table>
+        <thead><tr><th>Time</th><th>Product Code</th><th>Product Name</th><th>Qty Requested</th><th>Result</th></tr></thead>
+        <tbody id="dash-activity"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- DAILY STOCK UPDATE -->
+  <div class="page" id="page-stock">
+    <div class="pg-header">
+      <div><div class="pg-title">Daily Stock Update</div><div class="pg-sub">Update available quantities — changes go live immediately</div></div>
+      <button class="btn btn-primary btn-lg" onclick="saveStock()">✓ Save All Updates</button>
+    </div>
+    <div class="stock-update-wrap">
+      <div class="stock-info-bar">📋 Enter today's available quantity for each product (in pieces)</div>
+      <table>
+        <thead><tr><th>Product Code</th><th>Product Name</th><th>Size</th><th>Category</th><th style="text-align:right">Available Qty (pcs)</th><th>Last Updated</th></tr></thead>
+        <tbody id="stock-tbody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
+      <button class="btn btn-primary" onclick="saveStock()">✓ Save All Updates</button>
+      <span style="font-size:12px;color:var(--muted)">Updates reflect on the showroom portal immediately</span>
+    </div>
+  </div>
+
+  <!-- PRODUCTS LIST -->
+  <div class="page" id="page-products">
+    <div class="pg-header">
+      <div><div class="pg-title">Product Catalogue</div><div class="pg-sub" id="prod-count-sub">—</div></div>
+      <button class="btn btn-primary" onclick="nav('add-product', document.querySelectorAll('.sidebar-item')[3])">＋ Add Product</button>
+    </div>
+    <div class="table-card">
+      <div class="tc-head">
+        <div class="tc-title">All Products</div>
+        <input style="border:1.5px solid var(--border);border-radius:var(--r8);padding:6px 12px;font-size:13px;outline:none;width:180px;font-family:'Plus Jakarta Sans',sans-serif" placeholder="Search…" oninput="filterProds(this.value)">
+      </div>
+      <table>
+        <thead><tr><th>Code</th><th>Name</th><th>Size</th><th>Category</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="prod-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ADD PRODUCT -->
+  <div class="page" id="page-add-product">
+    <div class="pg-header">
+      <div><div class="pg-title">Add Product</div><div class="pg-sub">Add a new tile to your showroom catalogue</div></div>
+    </div>
+    <div class="form-card" style="max-width:580px">
+      <div class="form-grid">
+        <div class="frow">
+          <div class="flabel">Product Code *</div>
+          <input class="finput" id="ap-code" placeholder="e.g. FT1025" oninput="this.value=this.value.toUpperCase()">
+        </div>
+        <div class="frow">
+          <div class="flabel">Product Name *</div>
+          <input class="finput" id="ap-name" placeholder="e.g. Marble White">
+        </div>
+        <div class="frow">
+          <div class="flabel">Size</div>
+          <input class="finput" id="ap-size" placeholder="600 x 600 mm">
+        </div>
+        <div class="frow">
+          <div class="flabel">Category</div>
+          <select class="finput" id="ap-cat">
+            <option value="">Select…</option>
+            <option>Polished</option><option>Matt</option><option>Outdoor</option><option>Wooden</option><option>Stone Look</option>
+          </select>
+        </div>
+      </div>
+      <hr class="divider">
+      <div class="frow" style="margin-bottom:14px">
+        <div class="flabel">Product Image URL</div>
+        <input class="finput" id="ap-img" placeholder="https://drive.google.com/uc?id=...">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Upload to Google Drive → Share publicly → Paste direct link here</div>
+      </div>
+      <div class="frow" style="margin-bottom:14px">
+        <div class="flabel">Initial Stock (pieces)</div>
+        <input class="finput" id="ap-stock" type="number" placeholder="0" style="max-width:160px">
+      </div>
+      <div class="frow" style="margin-bottom:20px">
+        <div class="flabel">Status</div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500">
+            <input type="radio" name="ap-status" value="Active" checked> Active
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500">
+            <input type="radio" name="ap-status" value="Inactive"> Inactive
+          </label>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-lg" onclick="addProduct()">Add to Catalogue</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="page" id="page-settings">
+    <div class="pg-header">
+      <div><div class="pg-title">Portal Settings</div><div class="pg-sub">Your showroom portal configuration</div></div>
+    </div>
+    <div class="form-card" style="max-width:480px">
+      <div style="margin-bottom:20px">
+        <div class="flabel">Business Name</div>
+        <input class="finput" id="set-biz" placeholder="Raj Tiles & Marbles">
+      </div>
+      <div style="margin-bottom:20px">
+        <div class="flabel">Owner Name</div>
+        <input class="finput" id="set-owner" placeholder="Rajesh Kumar">
+      </div>
+      <div style="margin-bottom:20px">
+        <div class="flabel">City</div>
+        <input class="finput" id="set-city" placeholder="Hyderabad">
+      </div>
+      <div style="margin-bottom:20px">
+        <div class="flabel">Sales WhatsApp Number</div>
+        <input class="finput" id="set-wa" placeholder="91XXXXXXXXXX">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">All enquiries from your portal go to this number</div>
+      </div>
+      <div style="margin-bottom:20px">
+        <div class="flabel">Portal URL (read only)</div>
+        <input class="finput" id="set-url" disabled>
+      </div>
+      <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- EDIT PRODUCT MODAL -->
+<div class="modal-bg" id="edit-modal">
+  <div class="modal">
+    <h2>Edit Product</h2>
+    <p>Changes reflect immediately on the showroom portal.</p>
+    <div class="form-grid" style="margin-bottom:14px">
+      <div><div class="flabel">Product Code</div><input class="finput" id="ep-code" disabled></div>
+      <div><div class="flabel">Product Name *</div><input class="finput" id="ep-name"></div>
+      <div><div class="flabel">Size</div><input class="finput" id="ep-size"></div>
+      <div><div class="flabel">Category</div><select class="finput" id="ep-cat"><option>Polished</option><option>Matt</option><option>Outdoor</option><option>Wooden</option><option>Stone Look</option></select></div>
+    </div>
+    <div style="margin-bottom:14px"><div class="flabel">Image URL</div><input class="finput" id="ep-img"></div>
+    <div style="margin-bottom:4px">
+      <div class="flabel">Status</div>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="radio" name="ep-status" value="Active"> Active</label>
+        <label style="display:flex;align-items:center;gap-6px;font-size:13px;cursor:pointer"><input type="radio" name="ep-status" value="Inactive"> Inactive</label>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" onclick="deleteProduct()">Delete</button>
+      <button class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════
+const params = new URLSearchParams(window.location.search);
+const TENANT_ID    = params.get('tenant') || 'D001';
+const IS_IMPERSONATE = params.get('impersonate') === '1';
+
+// SUPABASE (replace in production)
+const SUPABASE_URL = 'https://zpxxgfskdlspoiqdbvma.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_xKOg2BceGja-s14Q33CwYw_AGBUPfZI';
+const DEMO = false;
+
+// ═══════════════════════════════════════
+// DEMO DATA (per tenant)
+// ═══════════════════════════════════════
+const TENANT_INFO = {
+  'D001': { biz:'Raj Tiles & Marbles', owner:'Rajesh Kumar', city:'Hyderabad', wa:'919876543210' },
+  'D002': { biz:'Shree Flooring World', owner:'Suresh Patel', city:'Ahmedabad', wa:'919823456789' },
+  'D005': { biz:'Modern Floor Studio', owner:'Vikram Singh', city:'Delhi', wa:'919856789012' },
+};
+
+const info = TENANT_INFO[TENANT_ID] || TENANT_INFO['D001'];
+
+let products = [
+  { code:'FT1025', name:'Marble White', size:'600×600 mm', cat:'Polished', img:'', status:'Active',  stock:1500, updated:'Today 08:30' },
+  { code:'FT1026', name:'Slate Grey',   size:'600×600 mm', cat:'Matt',     img:'', status:'Active',  stock:200,  updated:'Today 08:30' },
+  { code:'FT1027', name:'Ivory Cream',  size:'800×800 mm', cat:'Polished', img:'', status:'Active',  stock:800,  updated:'Today 08:30' },
+  { code:'FT1028', name:'Terra Brown',  size:'600×600 mm', cat:'Outdoor',  img:'', status:'Inactive',stock:0,    updated:'Yesterday' },
+  { code:'FT1029', name:'Coal Black',   size:'600×1200 mm',cat:'Matt',     img:'', status:'Active',  stock:1200, updated:'Today 08:30' },
+];
+
+const DEMO_ACTIVITY = [
+  { time:'09:41 AM', code:'FT1025', name:'Marble White', qty:500,  result:'available'  },
+  { time:'09:38 AM', code:'FT1027', name:'Ivory Cream',  qty:1200, result:'check_sales' },
+  { time:'09:22 AM', code:'FT1026', name:'Slate Grey',   qty:200,  result:'available'  },
+  { time:'09:15 AM', code:'FT1029', name:'Coal Black',   qty:800,  result:'check_sales' },
+  { time:'08:55 AM', code:'FT1025', name:'Marble White', qty:300,  result:'available'  },
+];
+
+let editingCode = null;
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+function init() {
+  if(IS_IMPERSONATE) {
+    document.getElementById('imp-notice').classList.add('show');
+  }
+  document.getElementById('tenant-name').textContent = info.biz;
+  document.getElementById('last-stock-update').textContent = 'Stock last updated: Today 08:30';
+
+  // Settings pre-fill
+  document.getElementById('set-biz').value   = info.biz;
+  document.getElementById('set-owner').value = info.owner;
+  document.getElementById('set-city').value  = info.city;
+  document.getElementById('set-wa').value    = info.wa;
+  document.getElementById('set-url').value   = `dealer-portal.html?tenant=${TENANT_ID}`;
+
+  renderDashboard();
+  renderStockTable();
+  renderProdTable();
+}
+
+// ═══════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════
+function nav(page, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  if(el) el.classList.add('active');
+}
+
+function viewPortal() {
+  window.open(`dealer-portal.html?tenant=${TENANT_ID}`, '_blank');
+}
+
+// ═══════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════
+function renderDashboard() {
+  const active = products.filter(p=>p.status==='Active');
+  const low    = active.filter(p=>p.stock < 100);
+  document.getElementById('ds-products').textContent = active.length;
+  document.getElementById('ds-checks').textContent   = 47;
+  document.getElementById('ds-wa').textContent       = 8;
+  document.getElementById('ds-low').textContent      = low.length;
+  document.getElementById('sb-prod-count').textContent = active.length;
+  document.getElementById('prod-count-sub').textContent = `${products.length} products (${active.length} active)`;
+
+  document.getElementById('dash-activity').innerHTML = DEMO_ACTIVITY.map(a => `
+    <tr>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">${a.time}</td>
+      <td style="font-family:'DM Mono',monospace;font-weight:600">${a.code}</td>
+      <td>${a.name}</td>
+      <td style="font-family:'DM Mono',monospace">${a.qty} pcs</td>
+      <td><span style="font-weight:700;color:${a.result==='available'?'var(--green)':'var(--clay)'}">${a.result==='available'?'Available':'Check Sales'}</span></td>
+    </tr>
+  `).join('');
+}
+
+// ═══════════════════════════════════════
+// STOCK TABLE
+// ═══════════════════════════════════════
+function renderStockTable() {
+  document.getElementById('stock-tbody').innerHTML = products.filter(p=>p.status==='Active').map(p => `
+    <tr>
+      <td style="font-family:'DM Mono',monospace;font-weight:600">${p.code}</td>
+      <td>${p.name}</td>
+      <td style="color:var(--muted)">${p.size}</td>
+      <td><span class="badge badge-active">${p.cat}</span></td>
+      <td style="text-align:right"><input class="stock-qty-input" type="number" id="sq-${p.code}" value="${p.stock}" min="0"></td>
+      <td style="font-size:12px;color:var(--muted)">${p.updated}</td>
+    </tr>
+  `).join('');
+}
+
+function saveStock() {
+  products.filter(p=>p.status==='Active').forEach(p => {
+    const el = document.getElementById(`sq-${p.code}`);
+    if(el) { p.stock = parseInt(el.value)||0; p.updated = 'Just now'; }
+  });
+  document.getElementById('last-stock-update').textContent = 'Stock last updated: Just now';
+  renderDashboard();
+  showToast('Stock updated ✓', true);
+}
+
+// ═══════════════════════════════════════
+// PRODUCTS TABLE
+// ═══════════════════════════════════════
+function renderProdTable(list) {
+  list = list || products;
+  document.getElementById('prod-tbody').innerHTML = list.map(p => `
+    <tr>
+      <td style="font-family:'DM Mono',monospace;font-weight:600">${p.code}</td>
+      <td>${p.name}</td>
+      <td style="color:var(--muted)">${p.size}</td>
+      <td>${p.cat}</td>
+      <td><span class="badge badge-${p.status==='Active'?'active':'inactive'}">${p.status}</span></td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-outline" style="padding:5px 12px" onclick="openEdit('${p.code}')">Edit</button>
+          <button class="btn btn-danger" style="padding:5px 12px" onclick="confirmDelete('${p.code}')">Delete</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filterProds(q) {
+  const f = products.filter(p =>
+    p.code.toLowerCase().includes(q.toLowerCase()) ||
+    p.name.toLowerCase().includes(q.toLowerCase())
+  );
+  renderProdTable(f);
+}
+
+// ═══════════════════════════════════════
+// ADD PRODUCT
+// ═══════════════════════════════════════
+function addProduct() {
+  const code   = document.getElementById('ap-code').value.trim();
+  const name   = document.getElementById('ap-name').value.trim();
+  const size   = document.getElementById('ap-size').value.trim();
+  const cat    = document.getElementById('ap-cat').value;
+  const img    = document.getElementById('ap-img').value.trim();
+  const stock  = parseInt(document.getElementById('ap-stock').value)||0;
+  const status = document.querySelector('input[name="ap-status"]:checked').value;
+
+  if(!code||!name){ showToast('Product Code and Name are required'); return; }
+  if(products.find(p=>p.code===code)){ showToast('Product Code already exists'); return; }
+
+  products.push({ code, name, size, cat:cat||'Polished', img, status, stock, updated:'Just now' });
+  ['ap-code','ap-name','ap-size','ap-img','ap-stock'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ap-cat').value='';
+
+  renderStockTable();
+  renderProdTable();
+  renderDashboard();
+  showToast(`${code} added to catalogue ✓`, true);
+  nav('products', document.querySelectorAll('.sidebar-item')[2]);
+}
+
+// ═══════════════════════════════════════
+// EDIT / DELETE
+// ═══════════════════════════════════════
+function openEdit(code) {
+  const p = products.find(x=>x.code===code);
+  if(!p) return;
+  editingCode = code;
+  document.getElementById('ep-code').value = p.code;
+  document.getElementById('ep-name').value = p.name;
+  document.getElementById('ep-size').value = p.size;
+  document.getElementById('ep-cat').value  = p.cat;
+  document.getElementById('ep-img').value  = p.img;
+  document.querySelectorAll('input[name="ep-status"]').forEach(r => { r.checked = r.value === p.status; });
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+  editingCode = null;
+}
+
+function saveEdit() {
+  const p = products.find(x=>x.code===editingCode);
+  if(!p) return;
+  p.name   = document.getElementById('ep-name').value.trim() || p.name;
+  p.size   = document.getElementById('ep-size').value.trim();
+  p.cat    = document.getElementById('ep-cat').value;
+  p.img    = document.getElementById('ep-img').value.trim();
+  p.status = document.querySelector('input[name="ep-status"]:checked').value;
+  closeEditModal();
+  renderProdTable();
+  renderStockTable();
+  renderDashboard();
+  showToast(`${p.code} updated ✓`, true);
+}
+
+function confirmDelete() {
+  const p = products.find(x=>x.code===editingCode);
+  if(!p) return;
+  if(!confirm(`Delete ${p.code} — ${p.name}? This cannot be undone.`)) return;
+  deleteProduct();
+}
+
+function deleteProduct() {
+  products = products.filter(p=>p.code!==editingCode);
+  closeEditModal();
+  renderProdTable();
+  renderStockTable();
+  renderDashboard();
+  showToast('Product deleted');
+}
+
+// ═══════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════
+function saveSettings() {
+  info.biz   = document.getElementById('set-biz').value.trim();
+  info.owner = document.getElementById('set-owner').value.trim();
+  info.city  = document.getElementById('set-city').value.trim();
+  info.wa    = document.getElementById('set-wa').value.trim();
+  document.getElementById('tenant-name').textContent = info.biz;
+  showToast('Settings saved ✓', true);
+}
+
+// ═══════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════
+function showToast(msg, ok=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show${ok?' ok':''}`;
+  setTimeout(()=>{t.className='toast';}, 3000);
+}
+
+document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeEditModal();});
+
+init();
+</script>
+</body>
+</html>
